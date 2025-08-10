@@ -2,7 +2,9 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="./styles.css">  <!-- 여기에 -->
 <title>간헐적 단식 앱</title>
 
 <!-- FullCalendar -->
@@ -10,11 +12,21 @@
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js"></script>
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- FullCalendar CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/main.min.css" />
+
+<!-- FullCalendar (Global build) -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js" defer></script>
+
+<!-- 당신의 스크립트(아래에서 updateCalendar 쓰면 여기에) -->
+<script src="./app.js" defer></script>
+
+
 </head>
 <body>
 
 <h1>⏳ 간헐적 단식 앱</h1>
-<link rel="stylesheet" href="style.css">
+
 
 <div class="card">
     <h2>단식 타이머</h2>
