@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>간헐적 단식 앱</title>
+
+<!-- FullCalendar -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<h1>⏳ 간헐적 단식 앱</h1>
+<link rel="stylesheet" href="style.css">
+
+<div class="card">
+    <h2>단식 타이머</h2>
+    <p id="status">현재 상태: <b>대기 중</b></p>
+    <p id="timer">00:00:00</p>
+    <button class="start" onclick="startFasting()">단식 시작</button>
+    <button class="stop" onclick="stopFasting()">단식 종료</button>
+</div>
+
+<div class="card">
+    <h2>물 섭취 기록</h2>
+    <div class="input-group">
+        <input type="number" id="waterAmount" placeholder="ml 입력">
+        <button onclick="addWater()">추가</button>
+    </div>
+    <p>오늘 섭취량: <span id="waterTotal">0</span> ml / 목표: 2000 ml</p>
+</div>
+
+<div class="card">
+    <h2>메모 & 기분 기록</h2>
+    <textarea id="note" placeholder="오늘 기분이나 메모를 작성하세요"></textarea>
+    <button onclick="saveNote()">저장</button>
+    <p id="savedNote"></p>
+</div>
+
+<div class="card">
+    <h2>체중 기록</h2>
+    <div class="input-group">
+        <input type="number" id="weight" placeholder="체중(kg)">
+        <button onclick="saveWeight()">저장</button>
+    </div>
+    <p id="weightHistory"></p>
+</div>
+
+<div class="card">
+    <h2>단식 달력</h2>
+    <div id="calendar"></div>
+</div>
+
+<div class="card">
+    <h2>그래프 통계</h2>
+    <canvas id="fastingChart"></canvas>
+    <canvas id="weightChart" style="margin-top:20px;"></canvas>
+</div>
+
+<script>
+let fastingStart = null;
+let timerInterval = null;
+let waterTotal = 0;
+let weightLog = JSON.parse(localStorage.getItem("weightLog")) || [];
+let fastingLog = JSON.parse(localStorage.getItem("fastingLog")) || [];
+
+// 단식 시작
+function startFasting() {
+    fastingStart = new Date();
+    document.getElementById("status").innerHTML = "현재 상태: <b>단식 중</b>";
+    timerInterval = setInterval(updateTimer, 1000);
+    notify("단식을 시작했습니다!");
+}
+
+// 단식 종료
+function stopFasting() {
+    if (!fastingStart) return alert("단식을 시작하지 않았습니다.");
+    clearInterval(timerInterval);
+    document.getElementById("status").innerHTML = "현재 상태: <b>식사 시간</b>";
+    let fastingEnd = new Date();
+    let hours = ((fastingEnd - fastingStart) / 3600000).toFixed(2);
+    fastingLog.push({ date: fastingEnd.toLocaleDateString(), hours: parseFloat(hours) });
+    localStorage.setItem("fastingLog", JSON.stringify(fastingLog));
+    updateCharts();
+    updateCalendar();
+    notify(`단식이 종료되었습니다! 총 ${hours}시간`);
+    fastingStart = null;
+}
+
+// 타이머 업데이트
+function updateTimer() {
+    if (!fastingStart) return;
+    let diff = Math.floor((new Date() - fastingStart) / 1000);
+    let h = String(Math.floor(diff / 3600)).padStart(2, '0');
+    let m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+    let s = String(diff % 60).padStart(2, '0');
+    document.getElementById("timer").innerText = `${h}:${m}:${s}`;
+}
+
+// 물 기록
+function addWater() {
+    let amount = parseInt(document.getElementById("waterAmount").value);
+    if (!amount) return;
+    waterTotal += amount;
+    document.getElementById("waterTotal").innerText = waterTotal;
+    document.getElementById("waterAmount").value = "";
+    if (waterTotal >= 2000) notify("오늘 물 목표를 달성했습니다!");
+}
+
+// 메모 저장
+function saveNote() {
+    let note = document.getElementById("note").value;
+    localStorage.setItem("fastingNote", note);
+    document.getElementById("savedNote").innerText = note;
+}
+
+// 체중 저장
+function saveWeight() {
+    let w = parseFloat(document.getElementById("weight").value);
+    if (!w) return;
+    weightLog.push({ date: new Date().toLocaleDateString(), weight: w });
+    localStorage.setItem("weightLog", JSON.stringify(weightLog));
+    updateCharts();
+    document.getElementById("weight").value = "";
+    document.getElementById("weightHistory").innerText = 
+        weightLog.map(e => `${e.date}: ${e.weight}kg`).join(", ");
+}
+
+// 알림
+function notify(message) {
+    if (Notification.permission === "granted") {
+        new Notification(message);
+    }
+}
+if (Notification.permission !== "granted") {
+    Notification.requestPermission();
+}
+
+// 달력 표시
+function updateCalendar() {
+    let calendarEl = document.getElementById('calendar');
+    let calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        events: fastingLog.map(e => ({
+            title: `${e.hours}시간 단식`,
+            start: e.date
+        }))
+    });
+    calendar.render();
+}
+
+// 그래프 표시
+function updateCharts() {
+    let fastingCtx = document.getElementById('fastingChart').getContext('2d');
+    let weightCtx = document.getElementById('weightChart').getContext('2d');
+
+    new Chart(fastingCtx, {
+        type: 'line',
+        data: {
+            labels: fastingLog.map(e => e.date),
+            datasets: [{
+                label: '단식 시간(시간)',
+                data: fastingLog.map(e => e.hours),
+                borderColor: '#4CAF50',
+                fill: false
+            }]
+        }
+    });
+
+    new Chart(weightCtx, {
+        type: 'line',
+        data: {
+            labels: weightLog.map(e => e.date),
+            datasets: [{
+                label: '체중(kg)',
+                data: weightLog.map(e => e.weight),
+                borderColor: '#f44336',
+                fill: false
+            }]
+        }
+    });
+}
+
+// 초기 로딩
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("savedNote").innerText = localStorage.getItem("fastingNote") || "";
+    document.getElementById("weightHistory").innerText = 
+        weightLog.map(e => `${e.date}: ${e.weight}kg`).join(", ");
+    updateCalendar();
+    updateCharts();
+});
+</script>
+
+</body>
+</html>
