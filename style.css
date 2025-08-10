@@ -1,0 +1,141 @@
+/* styles.css */
+
+/* 앱 전체의 기본 스타일 */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #e8f5e9; /* 배경색을 연한 녹색으로 설정하여 메인 색상과 어울리게 함 */
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 10px;
+}
+
+/* 제목 스타일 */
+h1 {
+    color: #1c8e3e; /* 메인 색상을 사용한 제목 */
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+/* 카드 스타일 (각 기능별 박스) */
+.card {
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 400px;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.card h2 {
+    color: #1c8e3e; /* 메인 색상을 사용한 부제목 */
+    font-size: 20px;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+/* 버튼 스타일 */
+button {
+    background-color: #1c8e3e; /* 메인 색상으로 버튼 배경색 설정 */
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 10px;
+}
+
+button:hover {
+    background-color: #146a2f; /* 버튼에 마우스를 올렸을 때 색상 */
+}
+
+.stop {
+    background-color: #d32f2f; /* '종료' 버튼은 빨간색으로 구분 */
+}
+
+.stop:hover {
+    background-color: #b71c1c;
+}
+
+/* 입력 필드 그룹 */
+.input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.input-group input[type="number"],
+textarea {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+/* 타이머 및 상태 표시 스타일 */
+#timer {
+    font-size: 48px;
+    font-weight: bold;
+    color: #1c8e3e; /* 메인 색상으로 타이머 숫자 강조 */
+    margin: 10px 0;
+}
+
+#status {
+    font-size: 18px;
+    color: #666;
+}
+
+/* 물 섭취량 텍스트 */
+#waterTotal {
+    font-weight: bold;
+    color: #1c8e3e;
+}
+
+/* 메모, 체중 기록 표시 */
+#savedNote, #weightHistory {
+    margin-top: 15px;
+    text-align: left;
+    white-space: pre-wrap; /* 줄바꿈 유지 */
+}
+
+/* FullCalendar 및 Chart.js 스타일 조정 */
+#calendar, #fastingChart, #weightChart {
+    margin-top: 20px;
+}
+
+.fc .fc-toolbar-title {
+    font-size: 20px;
+    color: #1c8e3e;
+}
+
+/* 모바일 화면에 맞게 전체적으로 조정 */
+@media (max-width: 480px) {
+    h1 {
+        font-size: 24px;
+    }
+    
+    .card {
+        padding: 15px;
+    }
+
+    button {
+        padding: 10px;
+    }
+
+    #timer {
+        font-size: 40px;
+    }
+}
