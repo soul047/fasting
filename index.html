@@ -1,218 +1,487 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link rel="stylesheet" href="./styles.css">  <!-- 여기에 -->
-<title>간헐적 단식 앱</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>⏳ 간헐적 단식 앱</title>
 
-<!-- FullCalendar -->
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js"></script>
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<!-- FullCalendar CSS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/main.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/main.min.css" />
 
-<!-- FullCalendar (Global build) -->
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.com/npm/chart.js"></script>
+    
+    <style>
+        /* apps.css */
 
-<!-- 당신의 스크립트(아래에서 updateCalendar 쓰면 여기에) -->
-<script src="./app.js" defer></script>
+        /* 앱 전체의 기본 스타일 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #e8f5e9;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 10px;
+        }
 
+        /* 제목 스타일 */
+        h1 {
+            color: #1c8e3e; /* 메인 색상: RGB(28, 142, 62) */
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
 
+        /* 카드 스타일 (각 기능별 박스) */
+        .card {
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 400px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .card h2 {
+            color: #1c8e3e;
+            font-size: 20px;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+
+        /* 버튼 스타일 */
+        button {
+            background-color: #1c8e3e;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            width: 100%;
+            box-sizing: border-box;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #146a2f;
+        }
+
+        .stop {
+            background-color: #d32f2f;
+        }
+
+        .stop:hover {
+            background-color: #b71c1c;
+        }
+
+        /* 입력 필드 그룹 */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .input-group input[type="number"] {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .input-group select {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        /* 타이머 및 상태 표시 스타일 */
+        #gauge-container {
+            position: relative;
+            width: 200px;
+            height: 120px;
+            margin: 0 auto;
+        }
+        #fastingGauge {
+            display: block;
+        }
+        #timer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            font-weight: bold;
+            color: #1c8e3e;
+        }
+        #status {
+            font-size: 18px;
+            color: #666;
+        }
+
+        .stage-message {
+            font-size: 16px;
+            color: #4CAF50;
+            font-weight: bold;
+            margin-top: 10px;
+            min-height: 20px;
+        }
+
+        /* 물 섭취량 텍스트 */
+        #waterCount {
+            font-weight: bold;
+            color: #1c8e3e;
+        }
+
+        /* 메모, 체중 기록 표시 */
+        #weightHistory {
+            margin-top: 15px;
+            text-align: left;
+            white-space: pre-wrap;
+        }
+
+        /* FullCalendar 및 Chart.js 스타일 조정 */
+        #calendar, #fastingChart, #weightChart {
+            margin-top: 20px;
+        }
+
+        .fc .fc-toolbar-title {
+            font-size: 20px;
+            color: #1c8e3e;
+        }
+    </style>
 </head>
 <body>
 
-<h1>⏳ 간헐적 단식 앱</h1>
+    <h1>⏳ 간헐적 단식 앱</h1>
 
+    <div class="card">
+        <h2>단식 타이머 및 목표</h2>
+        <p id="status">현재 상태: <b>대기 중</b></p>
+        <p>목표 단식 시간: <span id="targetHours">16</span>시간</p>
 
-<div class="card">
-    <h2>단식 타이머</h2>
-    <p id="status">현재 상태: <b>대기 중</b></p>
-    <p id="timer">00:00:00</p>
-    <button class="start" onclick="startFasting()">단식 시작</button>
-    <button class="stop" onclick="stopFasting()">단식 종료</button>
-</div>
-
-<div class="card">
-    <h2>물 섭취 기록</h2>
-    <div class="input-group">
-        <input type="number" id="waterAmount" placeholder="ml 입력">
-        <button onclick="addWater()">추가</button>
+        <div id="gauge-container">
+            <canvas id="fastingGauge" width="200" height="120"></canvas>
+            <div id="timer">00:00:00</div>
+        </div>
+        
+        <div id="fasting-stage" class="stage-message">단식 시작을 눌러주세요!</div>
+        
+        <div class="input-group" style="margin-top: 15px;">
+            <select id="fastingModelSelect" onchange="setFastingModel()">
+                <option value="16">16:8 (가장 일반적)</option>
+                <option value="12">12:12</option>
+                <option value="18">18:6</option>
+                <option value="20">20:4</option>
+                <option value="24">24시간</option>
+                <option value="48">48시간</option>
+                <option value="72">72시간</option>
+            </select>
+        </div>
+        
+        <div class="input-group" style="margin-top: 5px;">
+            <input type="number" id="fastingTargetInput" placeholder="직접 설정(시간)" min="1" max="72">
+            <button onclick="setFastingTarget()">직접 설정</button>
+        </div>
+        
+        <button class="start" onclick="startFasting()">단식 시작</button>
+        <button class="stop" onclick="stopFasting()">단식 종료</button>
     </div>
-    <p>오늘 섭취량: <span id="waterTotal">0</span> ml / 목표: 2000 ml</p>
-</div>
 
-<div class="card">
-    <h2>메모 & 기분 기록</h2>
-    <textarea id="note" placeholder="오늘 기분이나 메모를 작성하세요"></textarea>
-    <button onclick="saveNote()">저장</button>
-    <p id="savedNote"></p>
-</div>
-
-<div class="card">
-    <h2>체중 기록</h2>
-    <div class="input-group">
-        <input type="number" id="weight" placeholder="체중(kg)">
-        <button onclick="saveWeight()">저장</button>
+    <div class="card">
+        <h2>물 섭취 기록</h2>
+        <p>오늘 섭취량: <span id="waterCount">0</span>잔 (목표: 8잔)</p>
+        <button onclick="addWater()">물 한 잔 마셨어요!</button>
     </div>
-    <p id="weightHistory"></p>
-</div>
 
-<div class="card">
-    <h2>단식 달력</h2>
-    <div id="calendar"></div>
-</div>
+    <div class="card">
+        <h2>체중 기록</h2>
+        <div class="input-group">
+            <input type="number" id="weight" placeholder="체중(kg)">
+            <button onclick="saveWeight()">저장</button>
+        </div>
+        <p id="weightHistory"></p>
+    </div>
 
-<div class="card">
-    <h2>그래프 통계</h2>
-    <canvas id="fastingChart"></canvas>
-    <canvas id="weightChart" style="margin-top:20px;"></canvas>
-</div>
+    <div class="card">
+        <h2>단식 달력</h2>
+        <div id="calendar"></div>
+    </div>
 
-<script>
-let fastingStart = null;
-let timerInterval = null;
-let waterTotal = 0;
-let weightLog = JSON.parse(localStorage.getItem("weightLog")) || [];
-let fastingLog = JSON.parse(localStorage.getItem("fastingLog")) || [];
+    <div class="card">
+        <h2>그래프 통계</h2>
+        <canvas id="fastingChart"></canvas>
+        <canvas id="weightChart" style="margin-top:20px;"></canvas>
+    </div>
 
-// 단식 시작
-function startFasting() {
-    fastingStart = new Date();
-    document.getElementById("status").innerHTML = "현재 상태: <b>단식 중</b>";
-    timerInterval = setInterval(updateTimer, 1000);
-    notify("단식을 시작했습니다!");
-}
+    <script>
+        // app.js
 
-// 단식 종료
-function stopFasting() {
-    if (!fastingStart) return alert("단식을 시작하지 않았습니다.");
-    clearInterval(timerInterval);
-    document.getElementById("status").innerHTML = "현재 상태: <b>식사 시간</b>";
-    let fastingEnd = new Date();
-    let hours = ((fastingEnd - fastingStart) / 3600000).toFixed(2);
-    fastingLog.push({ date: fastingEnd.toLocaleDateString(), hours: parseFloat(hours) });
-    localStorage.setItem("fastingLog", JSON.stringify(fastingLog));
-    updateCharts();
-    updateCalendar();
-    notify(`단식이 종료되었습니다! 총 ${hours}시간`);
-    fastingStart = null;
-}
+        let fastingStart = null;
+        let timerInterval = null;
+        let waterCount = parseInt(localStorage.getItem("waterCount")) || 0;
+        let weightLog = JSON.parse(localStorage.getItem("weightLog")) || [];
+        let fastingLog = JSON.parse(localStorage.getItem("fastingLog")) || [];
+        let fastingTargetHours = parseInt(localStorage.getItem("fastingTargetHours")) || 16;
+        let fastingTimer = 0; // 현재 단식 시간을 초 단위로 저장할 변수
 
-// 타이머 업데이트
-function updateTimer() {
-    if (!fastingStart) return;
-    let diff = Math.floor((new Date() - fastingStart) / 1000);
-    let h = String(Math.floor(diff / 3600)).padStart(2, '0');
-    let m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
-    let s = String(diff % 60).padStart(2, '0');
-    document.getElementById("timer").innerText = `${h}:${m}:${s}`;
-}
+        // 9세 민후를 위한 재미있는 메시지들
+        const fastingStages = [
+            { hour: 0, message: "아직 준비 단계에요!" },
+            { hour: 3, message: "몸이 에너지를 쓰기 시작했어요!" },
+            { hour: 6, message: "몸속 나쁜 에너지를 태우는 중!" },
+            { hour: 12, message: "와! 자가포식이 시작됐어요! 멋져요!" },
+            { hour: 16, message: "정말 대단해요! 지방이 활활 타는 중!" }
+        ];
 
-// 물 기록
-function addWater() {
-    let amount = parseInt(document.getElementById("waterAmount").value);
-    if (!amount) return;
-    waterTotal += amount;
-    document.getElementById("waterTotal").innerText = waterTotal;
-    document.getElementById("waterAmount").value = "";
-    if (waterTotal >= 2000) notify("오늘 물 목표를 달성했습니다!");
-}
-
-// 메모 저장
-function saveNote() {
-    let note = document.getElementById("note").value;
-    localStorage.setItem("fastingNote", note);
-    document.getElementById("savedNote").innerText = note;
-}
-
-// 체중 저장
-function saveWeight() {
-    let w = parseFloat(document.getElementById("weight").value);
-    if (!w) return;
-    weightLog.push({ date: new Date().toLocaleDateString(), weight: w });
-    localStorage.setItem("weightLog", JSON.stringify(weightLog));
-    updateCharts();
-    document.getElementById("weight").value = "";
-    document.getElementById("weightHistory").innerText = 
-        weightLog.map(e => `${e.date}: ${e.weight}kg`).join(", ");
-}
-
-// 알림
-function notify(message) {
-    if (Notification.permission === "granted") {
-        new Notification(message);
-    }
-}
-if (Notification.permission !== "granted") {
-    Notification.requestPermission();
-}
-
-// 달력 표시
-function updateCalendar() {
-    let calendarEl = document.getElementById('calendar');
-    let calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        events: fastingLog.map(e => ({
-            title: `${e.hours}시간 단식`,
-            start: e.date
-        }))
-    });
-    calendar.render();
-}
-
-// 그래프 표시
-function updateCharts() {
-    let fastingCtx = document.getElementById('fastingChart').getContext('2d');
-    let weightCtx = document.getElementById('weightChart').getContext('2d');
-
-    new Chart(fastingCtx, {
-        type: 'line',
-        data: {
-            labels: fastingLog.map(e => e.date),
-            datasets: [{
-                label: '단식 시간(시간)',
-                data: fastingLog.map(e => e.hours),
-                borderColor: '#4CAF50',
-                fill: false
-            }]
+        // 단식 모델 선택 함수
+        function setFastingModel() {
+            let selectedHours = parseInt(document.getElementById("fastingModelSelect").value);
+            fastingTargetHours = selectedHours;
+            localStorage.setItem("fastingTargetHours", selectedHours);
+            document.getElementById("targetHours").innerText = selectedHours;
+            notify(`${selectedHours}시간 단식 모델이 선택되었어요!`);
+            drawFastingGauge();
         }
-    });
 
-    new Chart(weightCtx, {
-        type: 'line',
-        data: {
-            labels: weightLog.map(e => e.date),
-            datasets: [{
-                label: '체중(kg)',
-                data: weightLog.map(e => e.weight),
-                borderColor: '#f44336',
-                fill: false
-            }]
+        // 단식 목표 직접 설정 함수
+        function setFastingTarget() {
+            let newTarget = parseInt(document.getElementById("fastingTargetInput").value);
+            if (newTarget >= 1 && newTarget <= 72) {
+                fastingTargetHours = newTarget;
+                localStorage.setItem("fastingTargetHours", newTarget);
+                document.getElementById("targetHours").innerText = fastingTargetHours;
+                document.getElementById("fastingTargetInput").value = "";
+                notify(`단식 목표가 ${fastingTargetHours}시간으로 설정되었어요!`);
+                drawFastingGauge();
+            } else {
+                alert("목표 시간은 1시간에서 72시간 사이로 설정해주세요.");
+            }
         }
-    });
-}
 
-// 초기 로딩
-document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("savedNote").innerText = localStorage.getItem("fastingNote") || "";
-    document.getElementById("weightHistory").innerText = 
-        weightLog.map(e => `${e.date}: ${e.weight}kg`).join(", ");
-    updateCalendar();
-    updateCharts();
-});
-</script>
+        // 단식 시작
+        function startFasting() {
+            fastingStart = new Date();
+            localStorage.setItem("fastingStart", fastingStart.toISOString());
+            document.getElementById("status").innerHTML = "현재 상태: <b>단식 중</b>";
+            document.querySelector(".start").style.display = "none";
+            document.querySelector(".stop").style.display = "block";
+            timerInterval = setInterval(updateTimer, 1000);
+            notify("단식을 시작했어요!");
+        }
 
+        // 단식 종료
+        function stopFasting() {
+            if (!fastingStart) return alert("단식을 시작하지 않았습니다.");
+            clearInterval(timerInterval);
+            document.getElementById("status").innerHTML = "현재 상태: <b>식사 시간</b>";
+            document.querySelector(".start").style.display = "block";
+            document.querySelector(".stop").style.display = "none";
+            
+            let fastingEnd = new Date();
+            let durationHours = ((fastingEnd - new Date(fastingStart)) / 3600000).toFixed(2);
+            let todayDate = fastingEnd.toISOString().split('T')[0];
+
+            let existingRecordIndex = fastingLog.findIndex(record => record.date === todayDate);
+
+            if (existingRecordIndex !== -1) {
+                fastingLog[existingRecordIndex].hours = parseFloat(durationHours);
+            } else {
+                fastingLog.push({ date: todayDate, hours: parseFloat(durationHours) });
+            }
+
+            localStorage.setItem("fastingLog", JSON.stringify(fastingLog));
+            localStorage.removeItem("fastingStart");
+
+            if (parseFloat(durationHours) >= fastingTargetHours) {
+                notify(`🎉 와! 목표였던 ${fastingTargetHours}시간을 넘겼어요! 민후는 정말 대단해! 🎉`);
+            } else {
+                notify(`단식이 종료되었어요! 총 ${durationHours}시간`);
+            }
+            
+            updateCharts();
+            updateCalendar();
+            fastingStart = null;
+            drawFastingGauge();
+        }
+
+        // 타이머 업데이트 (게이지 그리기 로직 추가)
+        function updateTimer() {
+            if (!fastingStart) return;
+            let diff = Math.floor((new Date() - new Date(fastingStart)) / 1000);
+            fastingTimer = diff;
+            let h = String(Math.floor(diff / 3600)).padStart(2, '0');
+            let m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+            let s = String(diff % 60).padStart(2, '0');
+            document.getElementById("timer").innerText = `${h}:${m}:${s}`;
+            
+            drawFastingGauge();
+            
+            const currentHours = diff / 3600;
+            const stage = fastingStages.slice().reverse().find(s => currentHours >= s.hour);
+            if (stage) {
+                document.getElementById("fasting-stage").innerText = stage.message;
+            }
+        }
+
+        // 반원 게이지 그리기 함수 추가
+        function drawFastingGauge() {
+            const canvas = document.getElementById('fastingGauge');
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height - 20;
+            const radius = 90;
+            const startAngle = Math.PI;
+            const endAngle = 2 * Math.PI;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 15;
+            ctx.stroke();
+
+            const progress = (fastingTimer / (fastingTargetHours * 3600));
+            const progressAngle = startAngle + (endAngle - startAngle) * Math.min(progress, 1);
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, startAngle, progressAngle);
+            ctx.strokeStyle = '#1c8e3e';
+            ctx.lineWidth = 15;
+            ctx.stroke();
+
+            if (progress >= 1) {
+                ctx.fillStyle = '#1c8e3e';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('목표 달성!', centerX, centerY - radius - 10);
+            }
+        }
+
+        // 물 기록
+        function addWater() {
+            waterCount++;
+            localStorage.setItem("waterCount", waterCount);
+            document.getElementById("waterCount").innerText = waterCount;
+            if (waterCount >= 8) {
+                notify("💦 와! 오늘 물 목표를 달성했어요! 칭찬 스티커 쾅!");
+            }
+        }
+
+        // 체중 저장
+        function saveWeight() {
+            let w = parseFloat(document.getElementById("weight").value);
+            if (!w) return;
+            let todayDate = new Date().toLocaleDateString();
+
+            let existingRecordIndex = weightLog.findIndex(record => record.date === todayDate);
+
+            if (existingRecordIndex !== -1) {
+                weightLog[existingRecordIndex].weight = w;
+            } else {
+                weightLog.push({ date: todayDate, weight: w });
+            }
+
+            localStorage.setItem("weightLog", JSON.stringify(weightLog));
+            updateCharts();
+            document.getElementById("weight").value = "";
+            document.getElementById("weightHistory").innerText = 
+                weightLog.map(e => `${e.date}: ${e.weight}kg`).join(", ");
+            notify("체중이 저장되었어요!");
+        }
+
+        // 알림
+        function notify(message) {
+            if (Notification.permission === "granted") {
+                new Notification("간헐적 단식 앱", { body: message });
+            }
+        }
+        if (Notification.permission !== "granted") {
+            Notification.requestPermission();
+        }
+
+        // 달력 표시
+        function updateCalendar() {
+            let calendarEl = document.getElementById('calendar');
+            if (calendarEl.hasChildNodes()) {
+                calendarEl.innerHTML = '';
+            }
+
+            let calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                events: fastingLog.map(e => ({
+                    title: `${e.hours}시간 단식`,
+                    start: e.date,
+                    color: '#1c8e3e'
+                }))
+            });
+            calendar.render();
+        }
+
+        // 그래프 표시
+        function updateCharts() {
+            let fastingCtx = document.getElementById('fastingChart').getContext('2d');
+            new Chart(fastingCtx, {
+                type: 'line',
+                data: {
+                    labels: fastingLog.map(e => e.date),
+                    datasets: [{
+                        label: '단식 시간(시간)',
+                        data: fastingLog.map(e => e.hours),
+                        borderColor: '#4CAF50',
+                        fill: false
+                    }]
+                }
+            });
+
+            let weightCtx = document.getElementById('weightChart').getContext('2d');
+            new Chart(weightCtx, {
+                type: 'line',
+                data: {
+                    labels: weightLog.map(e => e.date),
+                    datasets: [{
+                        label: '체중(kg)',
+                        data: weightLog.map(e => e.weight),
+                        borderColor: '#f44336',
+                        fill: false
+                    }]
+                }
+            });
+        }
+
+        // 초기 로딩
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("waterCount").innerText = waterCount;
+            document.getElementById("weightHistory").innerText = 
+                weightLog.map(e => `${e.date}: ${e.weight}kg`).join(", ");
+            document.getElementById("targetHours").innerText = fastingTargetHours;
+            document.getElementById("fastingModelSelect").value = fastingTargetHours;
+
+            const savedFastingStart = localStorage.getItem("fastingStart");
+            if (savedFastingStart) {
+                fastingStart = savedFastingStart;
+                document.getElementById("status").innerHTML = "현재 상태: <b>단식 중</b>";
+                document.querySelector(".start").style.display = "none";
+                document.querySelector(".stop").style.display = "block";
+                timerInterval = setInterval(updateTimer, 1000);
+            } else {
+                document.querySelector(".start").style.display = "block";
+                document.querySelector(".stop").style.display = "none";
+                drawFastingGauge();
+            }
+
+            updateCalendar();
+            updateCharts();
+        });
+    </script>
 </body>
 </html>
-
-<!-- FullCalendar CSS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/main.min.css" />
-
-<!-- FullCalendar JS (Global build) -->
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js" defer></script>
-
-<link rel="stylesheet" href="./style.css" />

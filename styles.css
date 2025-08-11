@@ -5,7 +5,7 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #e8f5e9; /* 배경색을 연한 녹색으로 설정하여 메인 색상과 어울리게 함 */
+    background-color: #e8f5e9;
     color: #333;
     display: flex;
     flex-direction: column;
@@ -15,7 +15,7 @@ body {
 
 /* 제목 스타일 */
 h1 {
-    color: #1c8e3e; /* 메인 색상을 사용한 제목 */
+    color: #1c8e3e; /* 메인 색상: RGB(28, 142, 62) */
     font-size: 28px;
     font-weight: bold;
     margin-bottom: 20px;
@@ -35,7 +35,7 @@ h1 {
 }
 
 .card h2 {
-    color: #1c8e3e; /* 메인 색상을 사용한 부제목 */
+    color: #1c8e3e;
     font-size: 20px;
     margin-top: 0;
     margin-bottom: 15px;
@@ -43,7 +43,7 @@ h1 {
 
 /* 버튼 스타일 */
 button {
-    background-color: #1c8e3e; /* 메인 색상으로 버튼 배경색 설정 */
+    background-color: #1c8e3e;
     color: #fff;
     border: none;
     border-radius: 8px;
@@ -57,11 +57,11 @@ button {
 }
 
 button:hover {
-    background-color: #146a2f; /* 버튼에 마우스를 올렸을 때 색상 */
+    background-color: #146a2f;
 }
 
 .stop {
-    background-color: #d32f2f; /* '종료' 버튼은 빨간색으로 구분 */
+    background-color: #d32f2f;
 }
 
 .stop:hover {
@@ -75,8 +75,15 @@ button:hover {
     margin-bottom: 10px;
 }
 
-.input-group input[type="number"],
-textarea {
+.input-group input[type="number"] {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+.input-group select {
     flex-grow: 1;
     padding: 10px;
     border: 1px solid #ccc;
@@ -86,29 +93,48 @@ textarea {
 }
 
 /* 타이머 및 상태 표시 스타일 */
-#timer {
-    font-size: 48px;
-    font-weight: bold;
-    color: #1c8e3e; /* 메인 색상으로 타이머 숫자 강조 */
-    margin: 10px 0;
+#gauge-container {
+    position: relative;
+    width: 200px;
+    height: 120px;
+    margin: 0 auto;
 }
-
+#fastingGauge {
+    display: block;
+}
+#timer {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px; /* 게이지 안에 들어가도록 크기 조절 */
+    font-weight: bold;
+    color: #1c8e3e;
+}
 #status {
     font-size: 18px;
     color: #666;
 }
 
+.stage-message {
+    font-size: 16px;
+    color: #4CAF50;
+    font-weight: bold;
+    margin-top: 10px;
+    min-height: 20px;
+}
+
 /* 물 섭취량 텍스트 */
-#waterTotal {
+#waterCount {
     font-weight: bold;
     color: #1c8e3e;
 }
 
 /* 메모, 체중 기록 표시 */
-#savedNote, #weightHistory {
+#weightHistory {
     margin-top: 15px;
     text-align: left;
-    white-space: pre-wrap; /* 줄바꿈 유지 */
+    white-space: pre-wrap;
 }
 
 /* FullCalendar 및 Chart.js 스타일 조정 */
@@ -119,23 +145,4 @@ textarea {
 .fc .fc-toolbar-title {
     font-size: 20px;
     color: #1c8e3e;
-}
-
-/* 모바일 화면에 맞게 전체적으로 조정 */
-@media (max-width: 480px) {
-    h1 {
-        font-size: 24px;
-    }
-    
-    .card {
-        padding: 15px;
-    }
-
-    button {
-        padding: 10px;
-    }
-
-    #timer {
-        font-size: 40px;
-    }
 }
