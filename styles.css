@@ -107,7 +107,7 @@ button:hover {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 24px; /* 게이지 안에 들어가도록 크기 조절 */
+    font-size: 24px;
     font-weight: bold;
     color: #1c8e3e;
 }
