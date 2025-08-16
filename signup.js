@@ -48,5 +48,5 @@ function finishSignup() {
     // 여기서 이메일, 비밀번호, 닉네임, 이유를 모두 서버로 전송합니다.
     alert('회원가입이 완료되었습니다!');
     // 회원가입 완료 후 메인 앱 페이지로 이동
-    window.location.href = './app.html';
+    window.location.href = './index.html';
 }
