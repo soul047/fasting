@@ -1,4 +1,4 @@
-/* fastmate.css */
+/* mypage.css */
 
 /* App's overall base style */
 body {
@@ -154,31 +154,6 @@ button:hover {
     box-sizing: border-box;
 }
 
-#timer {
-    font-size: 48px;
-    font-weight: bold;
-    color: #1c8e3e;
-    margin: 10px 0;
-}
-
-#status {
-    font-size: 18px;
-    color: #666;
-}
-
-.stage-message {
-    font-size: 16px;
-    color: #1c8e3e;
-    font-weight: bold;
-    margin-top: 10px;
-    min-height: 20px;
-}
-
-#waterCount {
-    font-weight: bold;
-    color: #1c8e3e;
-}
-
 #weightHistory, #fastingSuccessList {
     margin-top: 15px;
     text-align: left;
@@ -201,16 +176,4 @@ button:hover {
 .fc .fc-toolbar-title {
     font-size: 20px;
     color: #1c8e3e;
-}
-
-.header-links {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-}
-
-.header-links a {
-    color: #555;
-    text-decoration: none;
-    margin-left: 15px;
 }
