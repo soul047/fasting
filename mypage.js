@@ -1,12 +1,21 @@
 // mypage.js
 
+// Firebase SDK 불러오기
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
 // Global Variables and state
 let userData = {
-    nickname: localStorage.getItem("userNickname") || "게스트",
-    totalFastingTime: parseFloat(localStorage.getItem("totalFastingTime")) || 0,
-    successRecords: JSON.parse(localStorage.getItem("successRecords")) || []
+    nickname: "게스트",
+    totalFastingTime: 0,
+    successRecords: []
 };
-let weightLog = JSON.parse(localStorage.getItem("weightLog")) || [];
+let weightLog = [];
+let db;
+let auth;
+let userId;
+let isAuthReady = false;
 
 // Helper functions
 function showAlert(message) {
@@ -35,25 +44,35 @@ function toggleSidebar() {
 }
 
 // Main functionality functions
-function saveWeight() {
+async function saveWeight() {
+    if (!isAuthReady) {
+        showAlert("사용자 인증 중입니다. 잠시 후 다시 시도해주세요.");
+        return;
+    }
+
     const weightInput = document.getElementById("weight");
     let w = parseFloat(weightInput.value);
     if (!w) {
         showAlert("체중을 입력해 주세요.");
         return;
     }
-    weightLog.push({ date: new Date().toLocaleDateString(), weight: w });
-    localStorage.setItem("weightLog", JSON.stringify(weightLog));
-    updateCharts();
-    weightInput.value = "";
-    const weightHistoryEl = document.getElementById("weightHistory");
-    if (weightHistoryEl) {
-        weightHistoryEl.innerText = weightLog.map(e => `${e.date}: ${e.weight}kg`).join(", ");
+
+    try {
+        const weightData = {
+            date: new Date().toLocaleDateString(),
+            weight: w,
+            timestamp: new Date()
+        };
+        await addDoc(collection(db, `/artifacts/${__app_id}/users/${userId}/weights`), weightData);
+        weightInput.value = "";
+        notify("체중이 저장되었어요!");
+    } catch (e) {
+        console.error("Error adding document: ", e);
+        showAlert("체중 기록 저장에 실패했습니다.");
     }
-    notify("체중이 저장되었어요!");
 }
 
-function updateUserRecords() {
+async function updateUserRecords() {
     const userNicknameEl = document.getElementById("userNickname");
     const totalFastingTimeEl = document.getElementById("totalFastingTime");
     const fastingSuccessListEl = document.getElementById("fastingSuccessList");
@@ -94,7 +113,8 @@ function updateCalendar() {
 function updateCharts() {
     const fastingCtx = document.getElementById('fastingChart');
     if (fastingCtx) {
-        new Chart(fastingCtx.getContext('2d'), {
+        if(window.fastingChartInstance) window.fastingChartInstance.destroy();
+        window.fastingChartInstance = new Chart(fastingCtx.getContext('2d'), {
             type: 'line',
             data: {
                 labels: userData.successRecords.map(e => e.date),
@@ -104,12 +124,17 @@ function updateCharts() {
                     borderColor: '#4CAF50',
                     fill: false
                 }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
             }
         });
     }
     const weightCtx = document.getElementById('weightChart');
     if (weightCtx) {
-        new Chart(weightCtx.getContext('2d'), {
+        if(window.weightChartInstance) window.weightChartInstance.destroy();
+        window.weightChartInstance = new Chart(weightCtx.getContext('2d'), {
             type: 'line',
             data: {
                 labels: weightLog.map(e => e.date),
@@ -119,27 +144,85 @@ function updateCharts() {
                     borderColor: '#f44336',
                     fill: false
                 }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
             }
         });
     }
 }
 
 // Initialization on DOMContentLoaded
-document.addEventListener("DOMContentLoaded", () => {
-    const weightHistoryEl = document.getElementById("weightHistory");
-    if (weightHistoryEl) {
-        weightHistoryEl.innerText = weightLog.map(e => `${e.date}: ${e.weight}kg`).join(", ");
-    }
+document.addEventListener("DOMContentLoaded", async () => {
+    // Firebase 초기화
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
     
-    updateUserRecords();
-    updateCalendar();
-    updateCharts();
+    try {
+        const app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+
+        // onAuthStateChanged 리스너 설정
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                isAuthReady = true;
+                console.log("Firebase Auth State Changed. User ID:", userId);
+
+                // 사용자 데이터 실시간 동기화
+                onSnapshot(doc(db, `/artifacts/${appId}/users/${userId}/fastingData/summary`), (docSnapshot) => {
+                    if (docSnapshot.exists()) {
+                        const data = docSnapshot.data();
+                        userData.nickname = data.nickname || "게스트";
+                        userData.totalFastingTime = data.totalFastingTime || 0;
+                    }
+                    updateUserRecords();
+                });
+
+                // 단식 기록 실시간 동기화
+                onSnapshot(collection(db, `/artifacts/${appId}/users/${userId}/fastingRecords`), (snapshot) => {
+                    userData.successRecords = snapshot.docs.map(doc => doc.data());
+                    updateUserRecords();
+                    updateCalendar();
+                    updateCharts();
+                });
+
+                // 체중 기록 실시간 동기화
+                onSnapshot(collection(db, `/artifacts/${appId}/users/${userId}/weights`), (snapshot) => {
+                    weightLog = snapshot.docs.map(doc => doc.data());
+                    const weightHistoryEl = document.getElementById("weightHistory");
+                    if (weightHistoryEl) {
+                        weightHistoryEl.innerText = weightLog.map(e => `${e.date}: ${e.weight}kg`).join(", ");
+                    }
+                    updateCharts();
+                });
+
+            } else {
+                isAuthReady = false;
+                console.log("No user signed in.");
+                // 비로그인 사용자 처리
+            }
+        });
+
+        // 사용자 토큰으로 로그인
+        if (typeof __initial_auth_token !== 'undefined') {
+            await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+            await signInAnonymously(auth);
+        }
+
+    } catch (e) {
+        console.error("Firebase initialization or auth failed:", e);
+        showAlert("앱을 로드하는 중 오류가 발생했습니다. 나중에 다시 시도해 주세요.");
+    }
     
     const menuButton = document.getElementById("menu-button");
     if (menuButton) {
         menuButton.addEventListener("click", toggleSidebar);
     }
-
+    
     // Expose functions to the global scope for HTML onclick attributes
     window.toggleSidebar = toggleSidebar;
     window.saveWeight = saveWeight;
