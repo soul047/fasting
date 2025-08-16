@@ -18,7 +18,37 @@ h1 {
     color: #1c8e3e; /* 메인 색상: RGB(28, 142, 62) */
     font-size: 28px;
     font-weight: bold;
+    margin-bottom: 5px;
+}
+.subtitle {
+    color: #fdd835; /* 서브 색상: 노란색 */
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 0;
     margin-bottom: 20px;
+}
+
+/* 상단 링크 컨테이너 */
+.header-links {
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 10px 5px 0 5px;
+    box-sizing: border-box;
+}
+
+.header-links a {
+    color: #1c8e3e;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 14px;
+    transition: opacity 0.3s ease;
+}
+
+.header-links a:hover {
+    opacity: 0.7;
 }
 
 /* 카드 스타일 (각 기능별 박스) */

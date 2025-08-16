@@ -1,12 +1,32 @@
 // app.js
 
+// Firebase SDKs
+import { initializeApp } from "firebase/app";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "firebase/auth";
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, query, where, updateDoc } from "firebase/firestore";
+
+// Firebase Config (YOUR CODE HERE)
+const firebaseConfig = {
+    apiKey: "AIzaSyCpLWcArbLdVDG6Qd6QoCgMefrXNa2pUs8",
+    authDomain: "fasting-b4ccb.firebaseapp.com",
+    projectId: "fasting-b4ccb",
+    storageBucket: "fasting-b4ccb.firebasestorage.app",
+    messagingSenderId: "879518503068",
+    appId: "1:879518503068:web:295b1d4e21a40f9cc29d59",
+    measurementId: "G-EX5HR2CB35"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
 let fastingStart = null;
 let timerInterval = null;
 let waterCount = parseInt(localStorage.getItem("waterCount")) || 0;
-let weightLog = JSON.parse(localStorage.getItem("weightLog")) || [];
-let fastingLog = JSON.parse(localStorage.getItem("fastingLog")) || [];
 let fastingTargetHours = parseInt(localStorage.getItem("fastingTargetHours")) || 16;
-let fastingTimer = 0; // 현재 단식 시간을 초 단위로 저장할 변수
+let fastingTimer = 0;
+let currentUser = null; // 로그인한 사용자의 UID를 저장할 변수
 
 // 9세 민후를 위한 재미있는 메시지들
 const fastingStages = [
@@ -17,33 +37,102 @@ const fastingStages = [
     { hour: 16, message: "정말 대단해요! 지방이 활활 타는 중!" }
 ];
 
-// 단식 모델 선택 함수
-function setFastingModel() {
-    let selectedHours = parseInt(document.getElementById("fastingModelSelect").value);
-    fastingTargetHours = selectedHours;
-    localStorage.setItem("fastingTargetHours", selectedHours);
-    document.getElementById("targetHours").innerText = selectedHours;
-    notify(`${selectedHours}시간 단식 모델이 선택되었어요!`);
-    drawFastingGauge();
-}
+// --- 로그인/회원가입 관련 함수 ---
 
-// 단식 목표 직접 설정 함수
-function setFastingTarget() {
-    let newTarget = parseInt(document.getElementById("fastingTargetInput").value);
-    if (newTarget >= 1 && newTarget <= 72) {
-        fastingTargetHours = newTarget;
-        localStorage.setItem("fastingTargetHours", newTarget);
-        document.getElementById("targetHours").innerText = fastingTargetHours;
-        document.getElementById("fastingTargetInput").value = "";
-        notify(`단식 목표가 ${fastingTargetHours}시간으로 설정되었어요!`);
-        drawFastingGauge();
+// 로그인 상태 감지 및 UI 업데이트
+onAuthStateChanged(auth, async (user) => {
+    const authLink = document.getElementById('authLink');
+    if (user) {
+        currentUser = user;
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        const userData = userDoc.data();
+        if (authLink) {
+            authLink.innerText = `${userData?.nickname || "마이페이지"}`;
+            authLink.href = "mypage.html";
+        }
     } else {
-        alert("목표 시간은 1시간에서 72시간 사이로 설정해주세요.");
+        currentUser = null;
+        if (authLink) {
+            authLink.innerText = "로그인 / 회원가입";
+            authLink.href = "login.html"; // 로그인 페이지로 이동
+        }
+    }
+});
+
+// 이메일로 회원가입
+async function handleSignup() {
+    const email = document.getElementById('signup-email').value;
+    const password = document.getElementById('signup-password').value;
+    const nickname = document.getElementById('signup-nickname').value;
+    const passwordCheck = document.getElementById('signup-password-check').value;
+    const agree = document.getElementById('policy-agree').checked;
+
+    if (!email || !password || !nickname || !passwordCheck) {
+        alert("모든 필드를 입력해주세요.");
+        return;
+    }
+    if (password !== passwordCheck) {
+        alert("비밀번호가 일치하지 않습니다.");
+        return;
+    }
+    if (!agree) {
+        alert("이용약관 및 개인정보처리방침에 동의해야 합니다.");
+        return;
+    }
+
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        await setDoc(doc(db, "users", user.uid), {
+            nickname: nickname,
+            email: email,
+            totalFastingSeconds: 0
+        });
+        alert("회원가입 성공! 자동으로 로그인됩니다.");
+        window.location.href = 'index.html';
+    } catch (error) {
+        alert("회원가입 실패: " + error.message);
     }
 }
 
+// 이메일로 로그인
+async function handleLogin() {
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+        alert("로그인 성공!");
+        window.location.href = 'index.html';
+    } catch (error) {
+        alert("로그인 실패: " + error.message);
+    }
+}
+
+// 로그아웃
+async function handleLogout() {
+    try {
+        await signOut(auth);
+        alert("로그아웃되었습니다.");
+        window.location.href = 'index.html';
+    } catch (error) {
+        alert("로그아웃 실패: " + error.message);
+    }
+}
+
+// 구글/카카오톡 준비 중 메시지
+function showComingSoon() {
+    alert("준비 중입니다.");
+}
+
+// --- 메인 앱 기능 관련 함수 ---
+
 // 단식 시작
 function startFasting() {
+    if (!currentUser) {
+        alert("로그인 후 이용해주세요.");
+        return;
+    }
     fastingStart = new Date();
     localStorage.setItem("fastingStart", fastingStart.toISOString());
     document.getElementById("status").innerHTML = "현재 상태: <b>단식 중</b>";
@@ -54,7 +143,7 @@ function startFasting() {
 }
 
 // 단식 종료
-function stopFasting() {
+async function stopFasting() {
     if (!fastingStart) return alert("단식을 시작하지 않았습니다.");
     clearInterval(timerInterval);
     document.getElementById("status").innerHTML = "현재 상태: <b>식사 시간</b>";
@@ -62,18 +151,26 @@ function stopFasting() {
     document.querySelector(".stop").style.display = "none";
     
     let fastingEnd = new Date();
-    let durationHours = ((fastingEnd - new Date(fastingStart)) / 3600000).toFixed(2);
+    let durationSeconds = Math.floor((fastingEnd - new Date(fastingStart)) / 1000);
+    let durationHours = (durationSeconds / 3600).toFixed(2);
     let todayDate = fastingEnd.toISOString().split('T')[0];
 
-    let existingRecordIndex = fastingLog.findIndex(record => record.date === todayDate);
+    // Firestore에 단식 기록 저장
+    const fastingLogDoc = doc(db, "users", currentUser.uid, "fastingLogs", todayDate);
+    await setDoc(fastingLogDoc, {
+        date: todayDate,
+        hours: parseFloat(durationHours),
+        timestamp: new Date()
+    });
 
-    if (existingRecordIndex !== -1) {
-        fastingLog[existingRecordIndex].hours = parseFloat(durationHours);
-    } else {
-        fastingLog.push({ date: todayDate, hours: parseFloat(durationHours) });
-    }
+    // 총 단식 시간 업데이트
+    const userRef = doc(db, "users", currentUser.uid);
+    const userDoc = await getDoc(userRef);
+    const currentTotalSeconds = userDoc.data()?.totalFastingSeconds || 0;
+    await updateDoc(userRef, {
+        totalFastingSeconds: currentTotalSeconds + durationSeconds
+    });
 
-    localStorage.setItem("fastingLog", JSON.stringify(fastingLog));
     localStorage.removeItem("fastingStart");
 
     if (parseFloat(durationHours) >= fastingTargetHours) {
@@ -82,13 +179,12 @@ function stopFasting() {
         notify(`단식이 종료되었어요! 총 ${durationHours}시간`);
     }
     
-    updateCharts();
-    updateCalendar();
+    loadFastingLogs(); // 기록을 다시 불러와 그래프와 달력 업데이트
     fastingStart = null;
     drawFastingGauge();
 }
 
-// 타이머 업데이트 (게이지 그리기 로직 추가)
+// 타이머 업데이트
 function updateTimer() {
     if (!fastingStart) return;
     let diff = Math.floor((new Date() - new Date(fastingStart)) / 1000);

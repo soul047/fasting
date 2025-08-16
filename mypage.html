@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>마이페이지</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/main.min.css" />
+    <link rel="stylesheet" href="./styles.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.com/npm/chart.js"></script>
+
+    <script src="./app.js" defer></script>
+</head>
+<body>
+    
+    <div class="header-links">
+        <a href="#" id="authLink">로그인 / 회원가입</a>
+        <a href="index.html">메인으로</a>
+    </div>
+
+    <h1>👤 마이페이지</h1>
+    <p class="subtitle">나의 기록</p>
+
+    <div class="card" id="userRecordsCard">
+        <h2>나의 기록</h2>
+        <p>닉네임: <b id="userNickname">Guest</b></p>
+        <p>총 단식 시간: <b id="totalFastingTime">0시간</b></p>
+        <h3>단식 성공 기록 리스트</h3>
+        <ul id="fastingSuccessList">
+            <li>아직 기록이 없어요!</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>체중 기록</h2>
+        <div class="input-group">
+            <input type="number" id="weight" placeholder="체중(kg)">
+            <button onclick="saveWeight()">저장</button>
+        </div>
+        <p id="weightHistory"></p>
+    </div>
+
+    <div class="card">
+        <h2>단식 달력</h2>
+        <div id="calendar"></div>
+    </div>
+    
+</body>
+</html>
