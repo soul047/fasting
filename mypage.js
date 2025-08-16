@@ -91,10 +91,14 @@ function updateCalendar() {
     calendar.render();
 }
 
+// 그래프 업데이트 함수
 function updateCharts() {
     const fastingCtx = document.getElementById('fastingChart');
     if (fastingCtx) {
-        if(window.fastingChartInstance) window.fastingChartInstance.destroy();
+        // 기존 차트 인스턴스가 있다면 파괴하여 메모리 누수를 방지합니다.
+        if (window.fastingChartInstance) {
+            window.fastingChartInstance.destroy();
+        }
         window.fastingChartInstance = new Chart(fastingCtx.getContext('2d'), {
             type: 'line',
             data: {
@@ -102,19 +106,30 @@ function updateCharts() {
                 datasets: [{
                     label: '단식 시간(시간)',
                     data: userData.successRecords.map(e => e.duration),
-                    borderColor: '#4CAF50',
-                    fill: false
+                    borderColor: '#1c8e3e',
+                    backgroundColor: '#1c8e3e',
+                    fill: false,
+                    tension: 0.1
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
             }
         });
     }
+
     const weightCtx = document.getElementById('weightChart');
     if (weightCtx) {
-        if(window.weightChartInstance) window.weightChartInstance.destroy();
+        // 기존 차트 인스턴스가 있다면 파괴하여 메모리 누수를 방지합니다.
+        if (window.weightChartInstance) {
+            window.weightChartInstance.destroy();
+        }
         window.weightChartInstance = new Chart(weightCtx.getContext('2d'), {
             type: 'line',
             data: {
@@ -123,12 +138,19 @@ function updateCharts() {
                     label: '체중(kg)',
                     data: weightLog.map(e => e.weight),
                     borderColor: '#f44336',
-                    fill: false
+                    backgroundColor: '#f44336',
+                    fill: false,
+                    tension: 0.1
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false
+                    }
+                }
             }
         });
     }

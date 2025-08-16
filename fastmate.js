@@ -81,16 +81,18 @@ function drawGauge(ctx, percent) {
     const startAngle = Math.PI;
     const endAngle = Math.PI + (Math.PI * percent);
     
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, startAngle, endAngle, false);
-    ctx.lineWidth = 15;
-    ctx.strokeStyle = '#4CAF50';
-    ctx.stroke();
-    
+    // Background arc (for 100% fill)
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, startAngle, Math.PI * 2, false);
     ctx.lineWidth = 15;
     ctx.strokeStyle = '#e0e0e0';
+    ctx.stroke();
+
+    // Foreground arc (for current progress)
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, startAngle, endAngle, false);
+    ctx.lineWidth = 15;
+    ctx.strokeStyle = '#1c8e3e';
     ctx.stroke();
 }
 
@@ -171,6 +173,7 @@ function setFastingModel() {
         targetHoursEl.innerText = fastingTargetHours;
     }
     notify(`${fastingTargetHours}시간 단식 모델로 설정되었어요!`);
+    updateGaugeOnLoad();
 }
 
 function setFastingTarget() {
@@ -184,6 +187,23 @@ function setFastingTarget() {
             targetHoursEl.innerText = fastingTargetHours;
         }
         notify(`${fastingTargetHours}시간으로 목표가 직접 설정되었어요!`);
+        updateGaugeOnLoad();
+    }
+}
+
+// 초기 로드 시 게이지 업데이트
+function updateGaugeOnLoad() {
+    const canvas = document.getElementById('fastingGauge');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        const savedFastingStart = localStorage.getItem("fastingStart");
+        let gaugePercent = 0;
+        if (savedFastingStart) {
+            let diff = Math.floor((new Date() - new Date(savedFastingStart)) / 1000);
+            let currentHours = diff / 3600;
+            gaugePercent = Math.min(1, currentHours / fastingTargetHours);
+        }
+        drawGauge(ctx, gaugePercent);
     }
 }
 
@@ -206,10 +226,13 @@ document.addEventListener("DOMContentLoaded", () => {
         if (stopButtonEl) stopButtonEl.style.display = "block";
         timerInterval = setInterval(updateTimer, 1000);
     } else {
+        if (statusEl) statusEl.innerHTML = "현재 상태: <b>대기 중</b>";
         if (startButtonEl) startButtonEl.style.display = "block";
         if (stopButtonEl) stopButtonEl.style.display = "none";
     }
 
+    updateGaugeOnLoad();
+    
     const menuButton = document.getElementById("menu-button");
     if (menuButton) {
         menuButton.addEventListener("click", toggleSidebar);
