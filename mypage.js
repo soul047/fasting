@@ -7,6 +7,7 @@ let userData = {
     successRecords: JSON.parse(localStorage.getItem("successRecords")) || []
 };
 let weightLog = JSON.parse(localStorage.getItem("weightLog")) || [];
+let fastingTargetHours = parseInt(localStorage.getItem("fastingTargetHours")) || 16;
 
 // Helper functions
 function showAlert(message) {
@@ -36,16 +37,33 @@ function toggleSidebar() {
 
 // Main functionality functions
 function saveWeight() {
+    const weightDateInput = document.getElementById("weightDate");
     const weightInput = document.getElementById("weight");
-    let w = parseFloat(weightInput.value);
-    if (!w) {
-        showAlert("체중을 입력해 주세요.");
+
+    const date = weightDateInput.value;
+    let weight = parseFloat(weightInput.value);
+
+    if (!date || !weight) {
+        showAlert("날짜와 체중을 모두 입력해 주세요.");
         return;
     }
-    weightLog.push({ date: new Date().toLocaleDateString(), weight: w });
+    
+    // Check if the date already exists and replace it
+    const existingIndex = weightLog.findIndex(item => item.date === date);
+    if (existingIndex > -1) {
+        weightLog[existingIndex] = { date: date, weight: weight };
+    } else {
+        weightLog.push({ date: date, weight: weight });
+    }
+    
+    // Sort log by date to ensure proper chart display
+    weightLog.sort((a, b) => new Date(a.date) - new Date(b.date));
+
     localStorage.setItem("weightLog", JSON.stringify(weightLog));
     updateCharts();
     weightInput.value = "";
+    weightDateInput.value = "";
+
     const weightHistoryEl = document.getElementById("weightHistory");
     if (weightHistoryEl) {
         weightHistoryEl.innerText = weightLog.map(e => `${e.date}: ${e.weight}kg`).join(", ");
@@ -70,7 +88,12 @@ function updateUserRecords() {
         } else {
             userData.successRecords.forEach(record => {
                 const li = document.createElement("li");
-                li.innerText = `${record.date}: ${record.duration}시간 단식 (${record.message})`;
+                let recordText = `${record.date}: ${record.duration}시간 단식 (${record.message})`;
+                if (!record.success && record.duration > 0) {
+                     const percent = Math.min(100, (record.duration / fastingTargetHours * 100)).toFixed(0);
+                     recordText += ` (달성률 ${percent}%)`;
+                }
+                li.innerText = recordText;
                 fastingSuccessListEl.appendChild(li);
             });
         }
@@ -82,11 +105,19 @@ function updateCalendar() {
     if (!calendarEl) return;
     let calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
-        events: userData.successRecords.map(e => ({
-            title: e.success ? '✅ 성공' : '❌ 실패',
-            start: e.date,
-            color: e.success ? '#1c8e3e' : '#d32f2f'
-        }))
+        events: userData.successRecords.map(e => {
+            const percent = Math.min(100, (e.duration / fastingTargetHours * 100)).toFixed(0);
+            return {
+                title: e.success ? '✅ 성공' : `❌ ${percent}%`,
+                start: e.date,
+                color: e.success ? '#1c8e3e' : '#d32f2f'
+            };
+        }),
+        headerToolbar: {
+            left: 'prev,next',
+            center: 'title',
+            right: '' // 'today' 버튼 제거
+        }
     });
     calendar.render();
 }
@@ -95,7 +126,6 @@ function updateCalendar() {
 function updateCharts() {
     const fastingCtx = document.getElementById('fastingChart');
     if (fastingCtx) {
-        // 기존 차트 인스턴스가 있다면 파괴하여 메모리 누수를 방지합니다.
         if (window.fastingChartInstance) {
             window.fastingChartInstance.destroy();
         }
@@ -117,7 +147,15 @@ function updateCharts() {
                 maintainAspectRatio: false,
                 scales: {
                     y: {
-                        beginAtZero: true
+                        beginAtZero: true,
+                        grid: {
+                            display: true
+                        }
+                    },
+                    x: {
+                         grid: {
+                            display: true
+                        }
                     }
                 }
             }
@@ -126,7 +164,6 @@ function updateCharts() {
 
     const weightCtx = document.getElementById('weightChart');
     if (weightCtx) {
-        // 기존 차트 인스턴스가 있다면 파괴하여 메모리 누수를 방지합니다.
         if (window.weightChartInstance) {
             window.weightChartInstance.destroy();
         }
@@ -148,7 +185,15 @@ function updateCharts() {
                 maintainAspectRatio: false,
                 scales: {
                     y: {
-                        beginAtZero: false
+                        beginAtZero: false,
+                        grid: {
+                            display: true
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: true
+                        }
                     }
                 }
             }

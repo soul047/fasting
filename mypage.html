@@ -48,21 +48,26 @@
         <div class="card">
             <h2>체중 기록</h2>
             <div class="input-group">
-                <input type="number" id="weight" placeholder="체중(kg)">
-                <button onclick="saveWeight()">저장</button>
+                <input type="date" id="weightDate">
             </div>
+            <div class="input-group">
+                <input type="number" id="weight" placeholder="체중(kg)">
+            </div>
+            <button onclick="saveWeight()">저장</button>
             <p id="weightHistory"></p>
-        </div>
-
-        <div class="card">
-            <h2>단식 달력</h2>
-            <div id="calendar"></div>
         </div>
         
         <div class="card">
             <h2>그래프 통계</h2>
+            <p class="chart-description">단식 시간과 체중 변화를 그래프로 확인해보세요!</p>
             <canvas id="fastingChart"></canvas>
             <canvas id="weightChart" style="margin-top:20px;"></canvas>
+        </div>
+
+        <div class="card">
+            <h2>단식 달력</h2>
+            <p class="calendar-description">단식 성공은 ✅, 실패는 ❌로 표시돼요.</p>
+            <div id="calendar"></div>
         </div>
         
     </div>

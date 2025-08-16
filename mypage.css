@@ -129,13 +129,14 @@ button {
     color: #fff;
     border: none;
     border-radius: 8px;
-    padding: 12px 20px;
+    padding: 15px 20px;
     font-size: 16px;
     cursor: pointer;
     transition: background-color 0.3s ease;
     width: 100%;
     box-sizing: border-box;
     margin-top: 10px;
+    min-height: 50px;
 }
 
 button:hover {
@@ -154,9 +155,10 @@ button:hover {
     display: flex;
     gap: 10px;
     margin-bottom: 10px;
+    flex-direction: column;
 }
 
-.input-group input[type="number"], .input-group select {
+.input-group input[type="number"], .input-group input[type="date"], .input-group select {
     flex-grow: 1;
     padding: 10px;
     border: 1px solid #ddd;
@@ -181,14 +183,18 @@ button:hover {
     border-left: 5px solid #1c8e3e;
 }
 
+#calendar, #fastingChart, #weightChart {
+    margin-top: 20px;
+}
+
 .fc .fc-toolbar-title {
     font-size: 20px;
     color: #1c8e3e;
 }
 
 .highlight-card {
-    background-color: #ffd400; /* Yellow background */
-    color: #3b1e1e; /* Dark text */
+    background-color: #ffd400;
+    color: #3b1e1e;
     font-weight: bold;
     padding: 15px;
     border-radius: 10px;
@@ -197,4 +203,12 @@ button:hover {
 
 .highlight-card h2 {
     color: #3b1e1e;
+}
+
+/* Added for explanation text */
+.chart-description, .calendar-description {
+    font-size: 14px;
+    color: #666;
+    margin-top: -10px;
+    margin-bottom: 15px;
 }
