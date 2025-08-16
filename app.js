@@ -1,10 +1,4 @@
 // app.js
-
-// Firebase SDKs
-import { initializeApp } from "firebase/app";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "firebase/auth";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, query, where, updateDoc } from "firebase/firestore";
-
 // Firebase Config (YOUR CODE HERE)
 const firebaseConfig = {
     apiKey: "AIzaSyCpLWcArbLdVDG6Qd6QoCgMefrXNa2pUs8",
@@ -17,9 +11,9 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+const app = firebase.initializeApp(firebaseConfig);
+const auth = app.auth();
+const db = app.firestore();
 
 let fastingStart = null;
 let timerInterval = null;
@@ -40,11 +34,11 @@ const fastingStages = [
 // --- 로그인/회원가입 관련 함수 ---
 
 // 로그인 상태 감지 및 UI 업데이트
-onAuthStateChanged(auth, async (user) => {
+auth.onAuthStateChanged(async (user) => {
     const authLink = document.getElementById('authLink');
     if (user) {
         currentUser = user;
-        const userDoc = await getDoc(doc(db, "users", user.uid));
+        const userDoc = await db.collection("users").doc(user.uid).get();
         const userData = userDoc.data();
         if (authLink) {
             authLink.innerText = `${userData?.nickname || "마이페이지"}`;
@@ -81,9 +75,9 @@ async function handleSignup() {
     }
 
     try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
         const user = userCredential.user;
-        await setDoc(doc(db, "users", user.uid), {
+        await db.collection("users").doc(user.uid).set({
             nickname: nickname,
             email: email,
             totalFastingSeconds: 0
@@ -101,7 +95,7 @@ async function handleLogin() {
     const password = document.getElementById('login-password').value;
 
     try {
-        await signInWithEmailAndPassword(auth, email, password);
+        await auth.signInWithEmailAndPassword(email, password);
         alert("로그인 성공!");
         window.location.href = 'index.html';
     } catch (error) {
@@ -112,7 +106,7 @@ async function handleLogin() {
 // 로그아웃
 async function handleLogout() {
     try {
-        await signOut(auth);
+        await auth.signOut();
         alert("로그아웃되었습니다.");
         window.location.href = 'index.html';
     } catch (error) {
@@ -156,18 +150,17 @@ async function stopFasting() {
     let todayDate = fastingEnd.toISOString().split('T')[0];
 
     // Firestore에 단식 기록 저장
-    const fastingLogDoc = doc(db, "users", currentUser.uid, "fastingLogs", todayDate);
-    await setDoc(fastingLogDoc, {
+    await db.collection("users").doc(currentUser.uid).collection("fastingLogs").doc(todayDate).set({
         date: todayDate,
         hours: parseFloat(durationHours),
         timestamp: new Date()
-    });
+    }, { merge: true });
 
     // 총 단식 시간 업데이트
-    const userRef = doc(db, "users", currentUser.uid);
-    const userDoc = await getDoc(userRef);
+    const userRef = db.collection("users").doc(currentUser.uid);
+    const userDoc = await userRef.get();
     const currentTotalSeconds = userDoc.data()?.totalFastingSeconds || 0;
-    await updateDoc(userRef, {
+    await userRef.update({
         totalFastingSeconds: currentTotalSeconds + durationSeconds
     });
 
@@ -179,7 +172,7 @@ async function stopFasting() {
         notify(`단식이 종료되었어요! 총 ${durationHours}시간`);
     }
     
-    loadFastingLogs(); // 기록을 다시 불러와 그래프와 달력 업데이트
+    // loadFastingLogs(); // 기록을 다시 불러와 그래프와 달력 업데이트
     fastingStart = null;
     drawFastingGauge();
 }
@@ -203,9 +196,10 @@ function updateTimer() {
     }
 }
 
-// 반원 게이지 그리기 함수 추가
+// 반원 게이지 그리기 함수
 function drawFastingGauge() {
     const canvas = document.getElementById('fastingGauge');
+    if (!canvas) return; // 페이지에 canvas가 없는 경우 함수 종료
     const ctx = canvas.getContext('2d');
     const centerX = canvas.width / 2;
     const centerY = canvas.height - 20;
@@ -238,6 +232,10 @@ function drawFastingGauge() {
 
 // 물 기록
 function addWater() {
+    if (!currentUser) {
+        alert("로그인 후 이용해주세요.");
+        return;
+    }
     waterCount++;
     localStorage.setItem("waterCount", waterCount);
     document.getElementById("waterCount").innerText = waterCount;
@@ -247,7 +245,11 @@ function addWater() {
 }
 
 // 체중 저장
-function saveWeight() {
+async function saveWeight() {
+    if (!currentUser) {
+        alert("로그인 후 이용해주세요.");
+        return;
+    }
     let w = parseFloat(document.getElementById("weight").value);
     if (!w) return;
     let todayDate = new Date().toLocaleDateString();
@@ -279,8 +281,20 @@ if (Notification.permission !== "granted") {
 }
 
 // 달력 표시
-function updateCalendar() {
+async function updateCalendar() {
+    if (!currentUser) return;
+
+    const fastingLogsRef = db.collection("users").doc(currentUser.uid).collection("fastingLogs");
+    const snapshot = await fastingLogsRef.get();
+    
+    const fastingLog = [];
+    snapshot.forEach(doc => {
+        const data = doc.data();
+        fastingLog.push(data);
+    });
+
     let calendarEl = document.getElementById('calendar');
+    if (!calendarEl) return;
     if (calendarEl.hasChildNodes()) {
         calendarEl.innerHTML = '';
     }
@@ -297,57 +311,217 @@ function updateCalendar() {
 }
 
 // 그래프 표시
-function updateCharts() {
-    let fastingCtx = document.getElementById('fastingChart').getContext('2d');
-    new Chart(fastingCtx, {
-        type: 'line',
-        data: {
-            labels: fastingLog.map(e => e.date),
-            datasets: [{
-                label: '단식 시간(시간)',
-                data: fastingLog.map(e => e.hours),
-                borderColor: '#4CAF50',
-                fill: false
-            }]
-        }
-    });
+async function updateCharts() {
+    const fastingCtx = document.getElementById('fastingChart').getContext('2d');
+    if (fastingCtx) {
+        const fastingLogsRef = db.collection("users").doc(currentUser.uid).collection("fastingLogs");
+        const snapshot = await fastingLogsRef.get();
+        const fastingLog = [];
+        snapshot.forEach(doc => { fastingLog.push(doc.data()); });
 
-    let weightCtx = document.getElementById('weightChart').getContext('2d');
-    new Chart(weightCtx, {
-        type: 'line',
-        data: {
-            labels: weightLog.map(e => e.date),
-            datasets: [{
-                label: '체중(kg)',
-                data: weightLog.map(e => e.weight),
-                borderColor: '#f44336',
-                fill: false
-            }]
-        }
-    });
-}
-
-// 초기 로딩
-document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("waterCount").innerText = waterCount;
-    document.getElementById("weightHistory").innerText = 
-        weightLog.map(e => `${e.date}: ${e.weight}kg`).join(", ");
-    document.getElementById("targetHours").innerText = fastingTargetHours;
-    document.getElementById("fastingModelSelect").value = fastingTargetHours;
-
-    const savedFastingStart = localStorage.getItem("fastingStart");
-    if (savedFastingStart) {
-        fastingStart = savedFastingStart;
-        document.getElementById("status").innerHTML = "현재 상태: <b>단식 중</b>";
-        document.querySelector(".start").style.display = "none";
-        document.querySelector(".stop").style.display = "block";
-        timerInterval = setInterval(updateTimer, 1000);
-    } else {
-        document.querySelector(".start").style.display = "block";
-        document.querySelector(".stop").style.display = "none";
-        drawFastingGauge();
+        new Chart(fastingCtx, {
+            type: 'line',
+            data: {
+                labels: fastingLog.map(e => e.date),
+                datasets: [{
+                    label: '단식 시간(시간)',
+                    data: fastingLog.map(e => e.hours),
+                    borderColor: '#4CAF50',
+                    fill: false
+                }]
+            }
+        });
     }
 
-    updateCalendar();
-    updateCharts();
+    const weightCtx = document.getElementById('weightChart').getContext('2d');
+    if (weightCtx) {
+        new Chart(weightCtx, {
+            type: 'line',
+            data: {
+                labels: weightLog.map(e => e.date),
+                datasets: [{
+                    label: '체중(kg)',
+                    data: weightLog.map(e => e.weight),
+                    borderColor: '#f44336',
+                    fill: false
+                }]
+            }
+        });
+    }
+}
+
+// 기록 불러오기
+async function loadUserRecords() {
+    if (!currentUser) return;
+    
+    // 닉네임 로드
+    const userDoc = await db.collection("users").doc(currentUser.uid).get();
+    const userData = userDoc.data();
+    if (userData) {
+        document.getElementById("userNickname").innerText = userData.nickname;
+        
+        // 총 단식 시간 로드
+        const totalHours = (userData.totalFastingSeconds / 3600).toFixed(1);
+        document.getElementById("totalFastingTime").innerText = `${totalHours}시간`;
+    }
+
+    // 단식 기록 리스트 로드
+    const fastingLogsRef = db.collection("users").doc(currentUser.uid).collection("fastingLogs");
+    const q = fastingLogsRef.orderBy("timestamp", "desc");
+    const querySnapshot = await q.get();
+    
+    const fastingSuccessList = document.getElementById("fastingSuccessList");
+    if (fastingSuccessList) {
+        fastingSuccessList.innerHTML = '';
+        
+        if (querySnapshot.empty) {
+            fastingSuccessList.innerHTML = '<li>아직 기록이 없어요!</li>';
+        } else {
+            querySnapshot.forEach(doc => {
+                const data = doc.data();
+                const li = document.createElement("li");
+                const successPercent = ((data.hours / fastingTargetHours) * 100).toFixed(0);
+                if (data.hours >= fastingTargetHours) {
+                    li.innerText = `${data.date}: ${data.hours}시간 (목표 달성!) 🎉`;
+                } else {
+                    li.innerText = `${data.date}: ${data.hours}시간 (${successPercent}% 달성)`;
+                }
+                fastingSuccessList.appendChild(li);
+            });
+        }
+    }
+}
+
+// 페이지에 따라 필요한 기능 실행
+document.addEventListener("DOMContentLoaded", () => {
+    // 마이페이지인 경우
+    if (window.location.pathname.endsWith('mypage.html')) {
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = user;
+                loadUserRecords();
+                updateCalendar();
+                // 체중 기록 로컬 데이터 로드
+                document.getElementById("weightHistory").innerText = 
+                    weightLog.map(e => `${e.date}: ${e.weight}kg`).join(", ");
+            } else {
+                alert("로그인이 필요합니다.");
+                window.location.href = 'login.html';
+            }
+        });
+    }
+    // 메인페이지인 경우
+    else if (window.location.pathname.endsWith('index.html')) {
+        document.getElementById("waterCount").innerText = waterCount;
+        document.getElementById("targetHours").innerText = fastingTargetHours;
+        document.getElementById("fastingModelSelect").value = fastingTargetHours;
+        
+        const savedFastingStart = localStorage.getItem("fastingStart");
+        if (savedFastingStart) {
+            fastingStart = savedFastingStart;
+            document.getElementById("status").innerHTML = "현재 상태: <b>단식 중</b>";
+            document.querySelector(".start").style.display = "none";
+            document.querySelector(".stop").style.display = "block";
+            timerInterval = setInterval(updateTimer, 1000);
+        } else {
+            document.querySelector(".start").style.display = "block";
+            document.querySelector(".stop").style.display = "none";
+            drawFastingGauge();
+        }
+
+        // 로그인 상태에 따라 기록 로드
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = user;
+                // 파이어베이스에서 기록을 가져와 차트 업데이트
+                loadFastingLogsAndCharts();
+            } else {
+                // 로그인하지 않았을 때의 로직 (로컬 데이터 사용)
+                updateCharts();
+            }
+        });
+    }
+    // 로그인 페이지인 경우
+    else if (window.location.pathname.endsWith('login.html')) {
+        // 로그인/회원가입 버튼에 이벤트 리스너 추가
+        const loginBtn = document.querySelector("#login-form button");
+        if (loginBtn) loginBtn.onclick = handleLogin;
+        
+        const signupBtn = document.querySelector("#signup-form button");
+        if (signupBtn) signupBtn.onclick = handleSignup;
+    }
 });
+
+// 파이어베이스에서 단식 기록과 체중 기록을 불러와서 차트와 달력 업데이트
+async function loadFastingLogsAndCharts() {
+    if (!currentUser) return;
+    
+    const fastingLog = [];
+    const weightLog = [];
+    
+    // 단식 기록 로드
+    const fastingSnapshot = await db.collection("users").doc(currentUser.uid).collection("fastingLogs").get();
+    fastingSnapshot.forEach(doc => {
+        fastingLog.push(doc.data());
+    });
+    
+    // 체중 기록 로드 (로컬 데이터)
+    const localWeightLog = JSON.parse(localStorage.getItem("weightLog")) || [];
+    weightLog.push(...localWeightLog);
+    
+    updateCalendar(fastingLog);
+    updateCharts(fastingLog, weightLog);
+}
+
+// 이 함수들은 기존 코드를 기반으로 하지만, 
+// 파이어베이스 연동을 위해 인자를 받도록 수정되었습니다.
+function updateCalendar(fastingLog) {
+    if (!document.getElementById('calendar')) return;
+    let calendarEl = document.getElementById('calendar');
+    if (calendarEl.hasChildNodes()) {
+        calendarEl.innerHTML = '';
+    }
+    let calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        events: fastingLog.map(e => ({
+            title: `${e.hours}시간 단식`,
+            start: e.date,
+            color: '#1c8e3e'
+        }))
+    });
+    calendar.render();
+}
+
+function updateCharts(fastingLog, weightLog) {
+    const fastingCtx = document.getElementById('fastingChart');
+    if (fastingCtx) {
+        new Chart(fastingCtx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: fastingLog.map(e => e.date),
+                datasets: [{
+                    label: '단식 시간(시간)',
+                    data: fastingLog.map(e => e.hours),
+                    borderColor: '#4CAF50',
+                    fill: false
+                }]
+            }
+        });
+    }
+    
+    const weightCtx = document.getElementById('weightChart');
+    if (weightCtx) {
+        new Chart(weightCtx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: weightLog.map(e => e.date),
+                datasets: [{
+                    label: '체중(kg)',
+                    data: weightLog.map(e => e.weight),
+                    borderColor: '#f44336',
+                    fill: false
+                }]
+            }
+        });
+    }
+}
