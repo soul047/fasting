@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>fastmate</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/main.min.css" />
+    <link rel="stylesheet" href="./styles.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script src="./app.js" defer></script>
+</head>
+<body>
+
+    <!-- 사이드바 메뉴 -->
+    <nav id="sidebar" class="sidebar">
+        <a href="#" class="sidebar-item" onclick="toggleSidebar(); alert('마이페이지로 이동!');">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-user"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span>마이페이지</span>
+        </a>
+        <a href="#" class="sidebar-item" onclick="toggleSidebar(); alert('내 그래프 보기로 이동!');">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-bar-chart-2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            <span>내 그래프 보기</span>
+        </a>
+    </nav>
+    
+    <!-- 메인 컨텐츠와 헤더를 감싸는 래퍼 -->
+    <div id="main-wrapper" class="main-wrapper">
+        <header class="main-header">
+            <button id="menu-button" class="menu-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-menu"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+            <h1 class="main-title">fastmate <span class="subtitle">간헐적 단식 도우미</span></h1>
+        </header>
+
+        <!-- 기존 컨텐츠 카드들 -->
+        <div class="card">
+            <h2>단식 타이머 및 목표</h2>
+            <p id="status">현재 상태: <b>대기 중</b></p>
+            <p>목표 단식 시간: <span id="targetHours">16</span>시간</p>
+
+            <div id="gauge-container">
+                <canvas id="fastingGauge" width="200" height="120"></canvas>
+                <div id="timer">00:00:00</div>
+            </div>
+            
+            <div id="fasting-stage" class="stage-message">단식 시작을 눌러주세요!</div>
+            
+            <div class="input-group" style="margin-top: 15px;">
+                <select id="fastingModelSelect" onchange="setFastingModel()">
+                    <option value="16">16:8 (가장 일반적)</option>
+                    <option value="12">12:12</option>
+                    <option value="18">18:6</option>
+                    <option value="20">20:4</option>
+                    <option value="24">24시간</option>
+                    <option value="48">48시간</option>
+                    <option value="72">72시간</option>
+                </select>
+            </div>
+            
+            <div class="input-group" style="margin-top: 5px;">
+                <input type="number" id="fastingTargetInput" placeholder="직접 설정(시간)" min="1" max="72">
+                <button onclick="setFastingTarget()">직접 설정</button>
+            </div>
+            
+            <button class="start" onclick="startFasting()">단식 시작</button>
+            <button class="stop" onclick="stopFasting()">단식 종료</button>
+        </div>
+
+        <div class="card" id="userRecordsCard">
+            <h2>나의 기록</h2>
+            <p>닉네임: <b id="userNickname">Guest</b></p>
+            <p>총 단식 시간: <b id="totalFastingTime">0시간</b></p>
+            <h3>단식 성공 기록 리스트</h3>
+            <ul id="fastingSuccessList">
+                <li>아직 기록이 없어요!</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>물 섭취 기록</h2>
+            <p>오늘 섭취량: <span id="waterCount">0</span>잔 (목표: 8잔)</p>
+            <button onclick="addWater()">물 한 잔 마셨어요!</button>
+        </div>
+
+        <div class="card">
+            <h2>체중 기록</h2>
+            <div class="input-group">
+                <input type="number" id="weight" placeholder="체중(kg)">
+                <button onclick="saveWeight()">저장</button>
+            </div>
+            <p id="weightHistory"></p>
+        </div>
+
+        <div class="card">
+            <h2>단식 달력</h2>
+            <div id="calendar"></div>
+        </div>
+
+        <div class="card">
+            <h2>그래프 통계</h2>
+            <canvas id="fastingChart"></canvas>
+            <canvas id="weightChart" style="margin-top:20px;"></canvas>
+        </div>
+
+    </div>
+
+</body>
+</html>
