@@ -47,9 +47,14 @@ function toggleSidebar() {
 function updateTimer() {
     if (!fastingStart) return;
     let diff = Math.floor((new Date() - new Date(fastingStart)) / 1000);
-    let h = String(Math.floor(diff / 3600)).padStart(2, '0');
-    let m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
-    let s = String(diff % 60).padStart(2, '0');
+    
+    // Calculate remaining time
+    const totalSeconds = fastingTargetHours * 3600;
+    const remainingSeconds = Math.max(0, totalSeconds - diff);
+
+    let h = String(Math.floor(remainingSeconds / 3600)).padStart(2, '0');
+    let m = String(Math.floor((remainingSeconds % 3600) / 60)).padStart(2, '0');
+    let s = String(remainingSeconds % 60).padStart(2, '0');
     const timerEl = document.getElementById("timer");
     if (timerEl) {
         timerEl.innerText = `${h}:${m}:${s}`;
@@ -67,6 +72,10 @@ function updateTimer() {
         const ctx = canvas.getContext('2d');
         const gaugePercent = Math.min(1, currentHours / fastingTargetHours);
         drawGauge(ctx, gaugePercent);
+    }
+
+    if (remainingSeconds <= 0) {
+        stopFasting();
     }
 }
 
@@ -86,6 +95,7 @@ function drawGauge(ctx, percent) {
     ctx.arc(centerX, centerY, radius, startAngle, Math.PI * 2, false);
     ctx.lineWidth = 15;
     ctx.strokeStyle = '#e0e0e0';
+    ctx.lineCap = 'round';
     ctx.stroke();
 
     // Foreground arc (for current progress)
@@ -93,7 +103,27 @@ function drawGauge(ctx, percent) {
     ctx.arc(centerX, centerY, radius, startAngle, endAngle, false);
     ctx.lineWidth = 15;
     ctx.strokeStyle = '#1c8e3e';
+    ctx.lineCap = 'round';
     ctx.stroke();
+
+    // Gauge needle
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    const angle = (Math.PI * percent);
+    ctx.rotate(angle);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, -radius + 10);
+    ctx.strokeStyle = '#f44336'; // Red color for the needle
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.restore();
+
+    // Percentage text
+    ctx.fillStyle = '#333';
+    ctx.font = '20px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${(percent * 100).toFixed(0)}%`, centerX, centerY - radius / 2);
 }
 
 // Main functionality functions
@@ -191,6 +221,13 @@ function setFastingTarget() {
     }
 }
 
+function toggleTargetInput() {
+    const targetInputGroup = document.getElementById('fastingTargetInputGroup');
+    if (targetInputGroup) {
+        targetInputGroup.classList.toggle('visible');
+    }
+}
+
 // 초기 로드 시 게이지 업데이트
 function updateGaugeOnLoad() {
     const canvas = document.getElementById('fastingGauge');
@@ -237,6 +274,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (menuButton) {
         menuButton.addEventListener("click", toggleSidebar);
     }
+    
+    const directInputButton = document.getElementById('directInputButton');
+    if (directInputButton) {
+        directInputButton.addEventListener('click', toggleTargetInput);
+    }
 
     // Expose functions to the global scope for HTML onclick attributes
     window.toggleSidebar = toggleSidebar;
@@ -245,4 +287,5 @@ document.addEventListener("DOMContentLoaded", () => {
     window.addWater = addWater;
     window.setFastingModel = setFastingModel;
     window.setFastingTarget = setFastingTarget;
+    window.toggleTargetInput = toggleTargetInput;
 });
