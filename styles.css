@@ -1,3 +1,5 @@
+/* styles.css */
+
 body {
     font-family: Arial, sans-serif;
     background-color: #f0f4f7;
@@ -9,13 +11,14 @@ body {
     text-align: center;
 }
 
-.intro-container, .login-container {
+.intro-container, .login-container, .signup-container {
     background-color: #fff;
     padding: 40px 30px;
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     max-width: 400px;
     width: 90%;
+    box-sizing: border-box;
 }
 
 .logo {
@@ -63,7 +66,7 @@ body {
     text-decoration: underline;
 }
 
-.login-container h2 {
+.login-container h2, .signup-container h2 {
     color: #333;
     margin-bottom: 25px;
 }
@@ -107,5 +110,21 @@ body {
 .social-button img {
     width: 20px;
     height: 20px;
+    margin-right: 10px;
+}
+
+.reasons-list {
+    text-align: left;
+    margin-top: 20px;
+}
+
+.reasons-list label {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 16px;
+    color: #333;
+}
+
+.reasons-list input[type="checkbox"] {
     margin-right: 10px;
 }
